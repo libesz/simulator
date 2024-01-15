@@ -3,13 +3,14 @@ use embedded_graphics::{
     prelude::{PixelColor, Point, Size},
 };
 use sdl2::{
+    audio::{AudioCallback, AudioDevice, AudioSpec, AudioSpecDesired},
     event::Event,
     keyboard::{Keycode, Mod},
     mouse::{MouseButton, MouseWheelDirection},
     pixels::PixelFormatEnum,
     render::{Canvas, Texture, TextureCreator},
     video::WindowContext,
-    EventPump,
+    AudioSubsystem, EventPump,
 };
 
 use crate::{OutputImage, OutputSettings, SimulatorDisplay};
@@ -70,6 +71,7 @@ pub struct SdlWindow {
     event_pump: EventPump,
     window_texture: SdlWindowTexture,
     size: Size,
+    audio: AudioSubsystem,
 }
 
 impl SdlWindow {
@@ -83,6 +85,7 @@ impl SdlWindow {
     {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
+        let audio = sdl_context.audio().unwrap();
 
         let size = output_settings.framebuffer_size(display);
 
@@ -110,7 +113,22 @@ impl SdlWindow {
             event_pump,
             window_texture,
             size,
+            audio,
         }
+    }
+
+    pub fn open_playback<'a, CB, F, D>(
+        &self,
+        device: D,
+        spec: &AudioSpecDesired,
+        get_callback: F,
+    ) -> Result<AudioDevice<CB>, String>
+    where
+        CB: AudioCallback,
+        F: FnOnce(AudioSpec) -> CB,
+        D: Into<Option<&'a str>>,
+    {
+        self.audio.open_playback(device, spec, get_callback)
     }
 
     pub fn update(&mut self, framebuffer: &OutputImage<Rgb888>) {

@@ -8,6 +8,8 @@ use std::{
 };
 
 use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
+#[cfg(feature = "with-sdl")]
+use sdl2::audio::{AudioCallback, AudioDevice, AudioSpec, AudioSpecDesired};
 
 use crate::{
     display::SimulatorDisplay, output_image::OutputImage, output_settings::OutputSettings,
@@ -42,6 +44,26 @@ impl Window {
             output_settings: output_settings.clone(),
             desired_loop_duration: Duration::from_millis(1000 / output_settings.max_fps as u64),
             frame_start: Instant::now(),
+        }
+    }
+
+    /// Let user access SDL audio for playback
+    #[cfg(feature = "with-sdl")]
+    pub fn open_playback<'a, CB, F, D>(
+        &self,
+        device: D,
+        spec: &AudioSpecDesired,
+        get_callback: F,
+    ) -> Result<AudioDevice<CB>, String>
+    where
+        CB: AudioCallback,
+        F: FnOnce(AudioSpec) -> CB,
+        D: Into<Option<&'a str>>,
+    {
+        if let Some(sdl_window) = self.sdl_window.as_ref() {
+            sdl_window.open_playback(device, spec, get_callback)
+        } else {
+            Err("SDL Window does not exist".into())
         }
     }
 
